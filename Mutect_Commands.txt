@@ -1,0 +1,48 @@
+import pandas
+import to_csv
+
+#run this commands on
+#indexing ref genome
+bwa index /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa
+
+#mapping 2 reads with ref genome
+bwa mem -R '@RG\tID:foo\tSM:bar\tLB:library1' /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/DNA-seq/trimmed/FS25-H8_S4_L001_R1_001_val_1.fq  /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/DNA-seq/trimmed/FS25-H8_S4_L001_R2_001_val_2.fq > lane.sam
+
+#sam to bam
+samtools fixmate -O bam lane.sam lane_fixmate.bam
+
+mkdir tmp
+cd tmp
+mkdir lane_temp
+#sorting bam file
+samtools sort -O bam -o lane_sorted.bam -T /tmp/lane_temp lane_fixmate.bam
+#indexing bam file
+samtools index /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/lane_sorted.bam
+
+#gatk needs a ref.dict and ref.fa.fai files to run
+gatk CreateSequenceDictionary -R /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa
+#MUTECT TUMOR_ONLY MODE
+gatk Mutect2 -R /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa -I /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/T8/T8_sorted.bam --germline-resource af-only-gnomad.hg38.vcf.gz --panel-of-normals 1000g_pon.hg38.vcf.gz -O T8_tumoronly.vcf.gz
+gunzip T8_tumoronly.vcf.gz
+sed 's/chrM/MT/g' T8_tumoronly.vcf > T8_tumoronlyMT.vcf
+bgzip T8_tumoronlyMT.vcf
+bcftools index T8_tumoronlyMT.vcf.gz
+bcftools annotate -a /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/00-All.vcf.gz -c ID /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/T8_tumoronlyMT.vcf.gz > T8_tumoronly_rsIDs.vcf.gz
+bedtools intersect -wa -wb -a /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/T8/Mutect/T8_tumoronly_rsIDs.vcf -b ENS_Homo_sapiens.GRCh38.MT.generegions.bed > T8_tumoronly_annotated.vcf
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%AS_SB_TABLE\t%DP\t%ECNT\t%MBQ\t%MFRL\t%MMQ\t%MPOS\t%PON\t%POPAF\t%TLOD\t[%GT]\t[%AD]\t[%AF]\t[%DP]\t[%F1R2]\t[%F2R1]\t[%GQ]\t[%PGT]\t[%PID]\t[%PL]\t[%PS]\t[%SB]\n' T8_tumoronly_rsIDs.vcf > T8_tumoronly.temp.tsv
+sed '1iChr\tPOS\tID\tREF\tALT\tAS_SB_TABLE\tDP\tECNT\tMBQ\tMFRL\tMMQ\tMPOS\tPON\tPOPAF\tTLOD\t[GT]\t[AD]\t[AF]\t[DP]\t[F1R2]\t[F2R1]\t[GQ]\t[PGT]\t[PID]\t[PL]\t[PS]\t[SB]' T8_tumoronly.temp.tsv > T8_tumoronly.tsv
+python
+import pandas
+vc=pandas.read_csv('T8_tumoronly.tsv', sep = '\t')
+vc[['[AD REF]','[AD ALT1]','[AD ALT2]']] = vc['[AD]'].str.split(',', expand=True)
+vc['[AD ALT2]'].replace({None:0}, inplace=True)
+vc = vc.astype({'[AD ALT2]': int, '[AD REF]': int, '[AD ALT1]': int})
+vc['[Sum of AD]']=vc['[AD REF]']+vc['[AD ALT1]'] + vc['[AD ALT2]']
+vc['[Divide_of_ALT1]']=vc['[AD ALT1]'] / vc['[Sum of AD]']
+vc['%_ALT1']=vc['[Divide_of_ALT1]']*100
+vc['[Divide_of_ALT2]']=vc['[AD ALT2]'] / vc['[Sum of AD]']
+vc['%_ALT2']=vc['[Divide_of_ALT2]']*100
+del vc['[Divide_of_ALT2]']
+del vc['[Divide_of_ALT1]']
+vc_filtered = vc[vc['%_ALT1'] > 1]
+vc_filtered.to_csv('T8_tumoronly.tsv', sep='\t', index=False)

@@ -1,0 +1,32 @@
+#indexing ref genome
+bwa index /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa
+
+#mapping 2 reads with ref genome
+bwa mem -R '@RG\tID:foo\tSM:bar\tLB:library1' /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/DNA-seq/trimmed/FS25-H8_S4_L001_R1_001_val_1.fq  /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/DNA-seq/trimmed/FS25-H8_S4_L001_R2_001_val_2.fq > lane.sam
+
+#sam to bam
+samtools fixmate -O bam lane.sam lane_fixmate.bam
+
+mkdir tmp
+cd tmp
+mkdir lane_temp
+#sorting bam file
+samtools sort -O bam -o lane_sorted.bam -T /tmp/lane_temp lane_fixmate.bam
+#indexing bam file
+samtools index /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/lane_sorted.bam
+
+#gatk needs a ref.dict and ref.fa.fai files to run
+gatk CreateSequenceDictionary -R /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa
+
+#haplotypecaller
+gatk --java-options "-Xmx8G" HaplotypeCaller -R /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa -I /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/lane_sorted.bam -O H8.g.vcf.gz
+
+#annotation for getting rsIDs
+#first index both the input vcf files used below using bcftools index <filename>
+bcftools annotate -a /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/dbSNP/00-All.vcf.gz -c ID /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/variants/H8.g.vcf.gz > H8_rsIDs.vcf.gz
+
+#extracting info from vcfs
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%QUAL\t%AC\t%AF\t%AN\t%BaseQRankSum\t%DP\t%ExcessHet\t%FS\t%MLEAC\t%MLEAF\t%MQ\t%MQRankSum\t%QD\t%ReadPosRankSum\t%SOR\t[%GT]:[%AD]:[%DP]:[%GQ]:[%PL]\n' H8_rsIDs.vcf.gz > H8.temp.tsv
+
+#adding column names
+sed '1iChr\tPOS\tID\t\tREF\tALT\tQUAL\tAC\tAF\tAN\tBQRS\tDP\tEH\tFS\tMLEAC\tMLEAF\tMQ\tMQRS\tQD\tRPRS\tSOR\t[ GT]:[ AD]:[ DP]:[ GQ]:[PL]' H8.temp.tsv > H8.tsv
