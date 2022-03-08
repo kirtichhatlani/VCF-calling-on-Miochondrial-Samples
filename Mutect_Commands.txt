@@ -1,7 +1,6 @@
 import pandas
 import to_csv
 
-#run this commands on
 #indexing ref genome
 bwa index /storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/hu-mito/filtered_hg38-chrM.fa
 
