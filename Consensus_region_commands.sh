@@ -10,4 +10,6 @@ done
 ## ND6.bed has co-ordinates of ND6 region of mtDNA
 ## chrM    4470    5511
 
+for sample in DLTB-8 TLTB-8; do
 bedtools getfasta -fi ${consensus_output}/${sample}/${sample}.fa -bed ${ND6_cordinates} -fo ${consensus_output}/${sample}/${sample}_ND6.fa
+done
