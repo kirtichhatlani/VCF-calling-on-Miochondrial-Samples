@@ -3,7 +3,7 @@ vcfpath='/storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/vcfs'
 consensus_output='/storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/consensus'
 ND6_cordinates='/storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/ND6.bed'
 
-for sample in DLTB-8 TLTB-8 DLTB-P TLTB-P; do
+for sample in DLTB-8 TLTB-8; do
 cat $ref | bcftools consensus ${vcfpath}/${sample}/${sample}_tumoronly.vcf.gz > ${consensus_output}/${sample}/${sample}.fa
 done
 
