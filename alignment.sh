@@ -1,8 +1,6 @@
 ref='/storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/reference/filtered_hg38-chrM.fa'
-readpath='/storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/DNA-seq/'
-dbsnp='/storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/for_annotation/dbSNP'
+readpath='/storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/DNA-seq'
 bam_output='/storage/coda1/p-fstorici3/0/kchhatlani6/hu-mito/bams'
-DB='/storage/coda1/p-fstorici3/0/kchhatlani6/DBs'
 
 # INEDXING REF GENOME
 bwa index $ref
