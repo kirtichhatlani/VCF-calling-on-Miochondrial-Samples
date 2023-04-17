@@ -7,14 +7,14 @@ bwa index $ref
 gatk CreateSequenceDictionary -R $ref
 
 # ALIGNMENT
-for sample in H8 T8 HP TP;
+for sample in DLTB-8 TLTB-8 DLTB-P TLTB-P;
 do
 # mapping 2 reads with ref genome
-bwa mem -R '@RG\tID:foo\tSM:bar\tLB:library1' $ref $readpath/FS25-${sample}_S4_L001_R1_001_val_1.fq  $readpath/FS25-${sample}_S4_L001_R2_001_val_2.fq > ${bam_output}/${sample}.sam
+bwa mem -R '@RG\tID:foo\tSM:bar\tLB:library1' $ref $readpath/FS25-${sample}_R1.fq  $readpath/FS25-${sample}R2.fq > ${bam_output}/${sample}/${sample}.sam
 # sam to bam
-samtools fixmate -O bam ${bam_output}/${sample}.sam ${bam_output}/${sample}_fixmate.bam
+samtools fixmate -O bam ${bam_output}/${sample}${sample}.sam ${bam_output}/${sample}/${sample}_fixmate.bam
 # sorting bam file
-samtools sort -O bam -o ${bam_output}/${sample}_sorted.bam ${bam_output}/${sample}_fixmate.bam
+samtools sort -O bam -o ${bam_output}/${sample}${sample}_sorted.bam ${bam_output}/${sample}/${sample}_fixmate.bam
 # indexing bam file
-samtools index ${sample}_sorted.bam
+samtools index ${bam_output}/${sample}${sample}_sorted.bam
 done
